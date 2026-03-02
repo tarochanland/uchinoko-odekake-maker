@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>うちのこおでかけメーカー</title>
+<link rel="icon" href="./icon.png">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Segoe UI', sans-serif;
+  background-color: #f0f0ef;
+  background-image:
+    linear-gradient(to right, #e2e2e0 1px, transparent 1px),
+    linear-gradient(to bottom, #e2e2e0 1px, transparent 1px);
+  background-size: 32px 32px;
+  color: #1a1a1a; min-height: 100vh; display: flex; flex-direction: column;
+}
+.app { max-width: 1200px; margin: 0 auto; padding: 0 18px; width: 100%; flex: 1; }
+header { padding: 32px 0 24px; text-align: center; }
+header h1 { font-size: 1.1rem; font-weight: 400; letter-spacing: 0.18em; color: #444; }
+header p { font-size: 0.72rem; color: #bbb; letter-spacing: 0.1em; margin-top: 5px; }
+
+.layout { display: flex; flex-direction: column; gap: 14px; padding-bottom: 48px; }
+@media(min-width: 780px) {
+  .layout { display: grid; grid-template-columns: 1fr 2fr; grid-template-rows: auto auto 1fr; column-gap: 22px; row-gap: 14px; align-items: start; }
+  .upload-section { grid-column: 1; grid-row: 1; }
+  .char-list-wrap  { grid-column: 1; grid-row: 2; }
+  .controls        { grid-column: 1; grid-row: 3; }
+  .canvas-wrap     { grid-column: 2; grid-row: 1 / span 3; position: sticky; top: 20px; }
+}
+
+.upload-row { display: flex; gap: 10px; }
+.upload-box { flex: 1; background: #fff; border: 1.5px dashed #ddd; border-radius: 10px; padding: 18px 12px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+.upload-box:hover, .upload-box.dragover { border-color: #999; background: #fafafa; }
+.upload-box input { display: none; }
+.upload-box .ul-title { font-size: 0.8rem; letter-spacing: 0.1em; color: #777; margin-bottom: 4px; }
+.upload-box .ul-sub { font-size: 0.68rem; color: #bbb; line-height: 1.7; }
+.upload-box.has-file { border-color: #999; border-style: solid; }
+.upload-box.has-file .ul-title { color: #333; }
+.char-count { font-size: 0.7rem; color: #999; margin-top: 5px; }
+
+.canvas-wrap { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 240px; position: relative; }
+.canvas-wrap.dragover { border-color: #aaa; }
+.canvas-wrap.dragover::after { content: '画像をドロップ'; position: absolute; inset: 0; background: rgba(255,255,255,0.88); display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #888; letter-spacing: 0.1em; border-radius: 12px; pointer-events: none; }
+canvas { display: block; max-width: 100%; max-height: 80vh; cursor: crosshair; }
+.placeholder { color: #bbb; font-size: 0.82rem; text-align: center; padding: 50px 20px; letter-spacing: 0.07em; line-height: 2.4; }
+
+.char-list-wrap { display: none; }
+.char-list { display: flex; gap: 7px; flex-wrap: wrap; }
+.char-chip { display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #e0e0e0; border-radius: 20px; padding: 4px 10px 4px 5px; font-size: 0.75rem; color: #666; cursor: pointer; transition: border-color 0.15s; max-width: 180px; }
+.char-chip img { width: 26px; height: 26px; object-fit: contain; border-radius: 50%; background: #f5f5f5; flex-shrink: 0; }
+.char-chip .chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.char-chip.active { border-color: #333; color: #111; font-weight: 600; }
+.char-chip .del { margin-left: 3px; color: #ccc; font-size: 0.68rem; cursor: pointer; flex-shrink: 0; }
+.char-chip .del:hover { color: #d00; }
+
+.controls { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+.sec { display: flex; flex-direction: column; gap: 9px; }
+.sec-title { font-size: 0.67rem; letter-spacing: 0.2em; color: #aaa; text-transform: uppercase; }
+.ctrl-row { display: flex; align-items: center; gap: 10px; }
+.ctrl-label { font-size: 0.77rem; color: #777; min-width: 90px; }
+input[type=range] { flex: 1; -webkit-appearance: none; height: 2px; background: #e0e0e0; border-radius: 2px; outline: none; cursor: pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: #333; border-radius: 50%; cursor: pointer; }
+.val { font-size: 0.74rem; color: #999; min-width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+.tgl-group { display: flex; gap: 5px; flex-wrap: wrap; }
+.tgl { padding: 4px 11px; border: 1px solid #ddd; border-radius: 20px; background: transparent; color: #888; font-size: 0.73rem; cursor: pointer; transition: all 0.15s; letter-spacing: 0.03em; font-family: inherit; }
+.tgl:hover { border-color: #999; color: #444; }
+.tgl.active { background: #222; border-color: #222; color: #fff; }
+.divider { border: none; border-top: 1px solid #f0f0f0; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 0.78rem; letter-spacing: 0.05em; transition: opacity 0.2s; font-family: inherit; }
+.btn:hover { opacity: 0.75; }
+.btn-secondary { background: #f0f0ef; color: #555; border: 1px solid #ddd; }
+.btn-danger { background: #f0f0ef; color: #c00; border: 1px solid #f0c0c0; }
+.btn-primary { background: #1a1a1a; color: #fff; flex: 1; }
+
+.flip-toggle { display: flex; align-items: center; gap: 7px; cursor: pointer; padding: 6px 0; user-select: none; }
+.flip-toggle .flip-box { width: 16px; height: 16px; border: 1.5px solid #bbb; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s; flex-shrink: 0; }
+.flip-toggle.checked .flip-box { background: #222; border-color: #222; }
+.flip-toggle .flip-check { color: #fff; font-size: 0.7rem; display: none; }
+.flip-toggle.checked .flip-check { display: block; }
+.flip-toggle .flip-label { font-size: 0.77rem; color: #777; }
+
+.color-info { font-size: 0.69rem; color: #bbb; letter-spacing: 0.03em; }
+.no-char-hint { font-size: 0.74rem; color: #bbb; padding: 2px 0; letter-spacing: 0.04em; }
+
+footer { background: #fff; border-top: 1px solid #e8e8e8; padding: 18px 24px; text-align: center; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; }
+footer .credit { font-size: 0.72rem; color: #999; letter-spacing: 0.06em; }
+footer .credit a { text-decoration: none; color: #888; }
+footer .credit a:hover { color: #444; }
+.terms-btn { background: none; border: 1px solid #ddd; border-radius: 16px; padding: 4px 14px; font-size: 0.72rem; color: #888; cursor: pointer; font-family: inherit; letter-spacing: 0.05em; transition: border-color 0.15s, color 0.15s; }
+.terms-btn:hover { border-color: #999; color: #444; }
+
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+.modal-bg.open { display: flex; }
+.modal { background: #fff; border-radius: 14px; max-width: 520px; width: 100%; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; }
+.modal-header { padding: 18px 20px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f0f0f0; }
+.modal-header h2 { font-size: 0.9rem; font-weight: 600; letter-spacing: 0.08em; color: #333; }
+.modal-close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: #bbb; padding: 2px 6px; border-radius: 6px; }
+.modal-close:hover { color: #666; background: #f5f5f5; }
+.modal-body { padding: 18px 20px; overflow-y: auto; font-size: 0.8rem; color: #555; line-height: 1.9; letter-spacing: 0.03em; }
+.modal-body h3 { font-size: 0.78rem; color: #333; margin: 14px 0 5px; }
+.modal-body p { margin-bottom: 8px; }
+
+@media(max-width: 500px) { .upload-row { flex-direction: column; } .ctrl-label { min-width: 76px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>うちのこおでかけメーカー</h1>
+    <p>キャラクターと背景を合わせて、おでかけ写真をつくろう</p>
+  </header>
+
+  <div class="layout">
+    <div class="upload-section">
+      <div class="upload-row">
+        <label class="upload-box" id="bgBox">
+          <input type="file" id="bgInput" accept="image/*">
+          <div class="ul-title">背景写真</div>
+          <div class="ul-sub">クリックまたはドロップ<br>JPG / PNG / WebP など</div>
+        </label>
+        <label class="upload-box" id="charBox">
+          <input type="file" id="charInput" accept="image/png" multiple>
+          <div class="ul-title">キャラクター</div>
+          <div class="ul-sub">クリックまたはドロップ<br>透過PNG・複数可</div>
+          <div class="char-count" id="charCount"></div>
+        </label>
+      </div>
+    </div>
+
+    <div class="canvas-wrap" id="canvasWrap">
+      <div class="placeholder" id="placeholder">背景写真とキャラクターを<br>アップロードしてください<br><br>ドラッグ＆ドロップにも対応</div>
+      <canvas id="canvas" style="display:none"></canvas>
+    </div>
+
+    <div class="char-list-wrap" id="charListWrap">
+      <div class="char-list" id="charList"></div>
+    </div>
+
+    <div class="controls">
+      <div class="sec">
+        <div class="sec-title">出力比率</div>
+        <div class="tgl-group" id="ratioGroup">
+          <button class="tgl active" data-v="original">オリジナル</button>
+          <button class="tgl" data-v="4:3">4:3</button>
+          <button class="tgl" data-v="3:4">3:4</button>
+          <button class="tgl" data-v="16:9">16:9</button>
+          <button class="tgl" data-v="9:16">9:16</button>
+          <button class="tgl" data-v="1:1">1:1</button>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="sec">
+        <div class="sec-title">キャラクター設定 — <span id="charCtrlLabel">未選択</span></div>
+        <div id="charCtrlBody"><div class="no-char-hint">キャラクターを追加または選択してください</div></div>
+      </div>
+      <hr class="divider">
+      <div class="sec">
+        <div class="sec-title">フレーム</div>
+        <div class="tgl-group" id="frameGroup">
+          <button class="tgl active" data-v="none">なし</button>
+          <button class="tgl" data-v="border">縁取り</button>
+          <button class="tgl" data-v="date">日付スタンプ</button>
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="sec">
+        <div class="sec-title">エフェクト</div>
+        <div class="ctrl-row"><span class="ctrl-label">色収差</span><input type="range" id="chromaticSlider" min="0" max="20" value="0"><span class="val" id="chromaticVal">0</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">拡散光（グロー）</span><input type="range" id="glowSlider" min="0" max="100" value="0"><span class="val" id="glowVal">0</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">ビネット</span><input type="range" id="vignetteSlider" min="0" max="100" value="0"><span class="val" id="vignetteVal">0</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">光漏れ</span><input type="range" id="leakSlider" min="0" max="100" value="0"><span class="val" id="leakVal">0</span></div>
+      </div>
+      <hr class="divider">
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="resetBtn">リセット</button>
+        <button class="btn btn-primary" id="dlBtn">ダウンロード</button>
+      </div>
+      <div id="colorInfo" class="color-info"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span class="credit">Created by <a href="https://x.com/masudataro_" target="_blank" rel="noopener">ますだたろう</a></span>
+  <button class="terms-btn" id="termsBtn">利用規約</button>
+</footer>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>利用規約</h2>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>本ツール「うちのこおでかけメーカー」（以下、本サービス）をご利用いただく前に、以下の利用規約をお読みください。本サービスをご利用いただいた時点で、本規約に同意いただいたものとみなします。</p>
+      <h3>第1条　サービスについて</h3>
+      <p>本サービスは個人によって運営されています。サービスの内容は予告なく変更・終了する場合があります。</p>
+      <h3>第2条　利用について</h3>
+      <p>本サービスで生成した画像は、非商用・商用を問わずご利用いただけます。ただし、本サービス自体の再配布・販売はお控えください。</p>
+      <h3>第3条　アップロード画像について</h3>
+      <p>本サービスにアップロードした画像はサーバーに送信・保存されません。すべての処理はお使いのブラウザ上で完結します。画像をアップロードする際は、著作権・肖像権等を侵害するものはお控えください。アップロードする画像の権利をご自身が有しているか、あらかじめ権利者より許可を得たうえでご使用ください。</p>
+      <h3>第4条　禁止事項</h3>
+      <p>本サービスを利用した違法行為、他者への誹謗中傷、公序良俗に反するコンテンツの作成・配布を禁止します。</p>
+      <h3>第5条　免責事項</h3>
+      <p>本サービスの利用によって生じたいかなる損害についても、制作者は責任を負いません。</p>
+      <h3>第6条　著作権</h3>
+      <p>本サービス自体の著作権はますだたろう（@masudataro_）に帰属します。本サービスを利用して作成した画像の著作権は、アップロードした素材の権利関係に従います。</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const canvasWrap = document.getElementById('canvasWrap');
+let bgImg = null, bgColor = {r:128,g:128,b:128};
+let chars = [], selIdx = -1;
+let G = {ratio:'original', frame:'none', chromatic:0, glow:0, vignette:0, leak:0};
+let dragging = false, dragOx=0, dragOy=0;
+let showSel = false;
+let dlCount = 0;
+
+window.addEventListener('beforeunload', e => {
+  if(bgImg || chars.length>0){ e.preventDefault(); e.returnValue=''; }
+});
+document.getElementById('termsBtn').addEventListener('click', ()=>document.getElementById('modalBg').classList.add('open'));
+document.getElementById('modalClose').addEventListener('click', ()=>document.getElementById('modalBg').classList.remove('open'));
+document.getElementById('modalBg').addEventListener('click', e=>{ if(e.target===document.getElementById('modalBg')) document.getElementById('modalBg').classList.remove('open'); });
+
+document.addEventListener('mousedown', e => {
+  if(showSel && !canvasWrap.contains(e.target)){ showSel=false; render(); }
+});
+
+function analyzeBg(img){
+  const t=document.createElement('canvas'); t.width=64; t.height=64;
+  const tc=t.getContext('2d'); tc.drawImage(img,0,0,64,64);
+  const d=tc.getImageData(0,0,64,64).data; let r=0,g=0,b=0,n=d.length/4;
+  for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2];}
+  bgColor={r:r/n,g:g/n,b:b/n};
+  const descs=[
+    [()=>bgColor.r>160&&bgColor.g<120&&bgColor.b<120,'夕焼け・赤み'],
+    [()=>bgColor.r>160&&bgColor.g>120&&bgColor.b<100,'オレンジの光'],
+    [()=>bgColor.g>bgColor.r&&bgColor.g>bgColor.b&&bgColor.g>140,'緑・森の光'],
+    [()=>bgColor.b>bgColor.r&&bgColor.b>bgColor.g&&bgColor.b>140,'青・海・空の光'],
+    [()=>bgColor.r>200&&bgColor.g>200&&bgColor.b>200,'明るい昼光'],
+    [()=>Math.max(bgColor.r,bgColor.g,bgColor.b)<80,'暗い夜の光'],
+  ];
+  const found=descs.find(([fn])=>fn());
+  document.getElementById('colorInfo').textContent=`背景の色味  R${Math.round(bgColor.r)}  G${Math.round(bgColor.g)}  B${Math.round(bgColor.b)}${found?' — '+found[1]:''}`;
+}
+
+function getOutputSize(){
+  const bw=bgImg.naturalWidth, bh=bgImg.naturalHeight;
+  if(G.ratio==='original') return{w:bw,h:bh,ox:0,oy:0};
+  const [rw,rh]=G.ratio.split(':').map(Number), tar=rw/rh, src=bw/bh;
+  let w,h,ox=0,oy=0;
+  if(src>tar){h=bh;w=Math.round(bh*tar);ox=Math.round((bw-w)/2);}
+  else{w=bw;h=Math.round(bw/tar);oy=Math.round((bh-h)/2);}
+  return{w,h,ox,oy};
+}
+
+function render(){
+  if(!bgImg) return;
+  const{w,h,ox,oy}=getOutputSize();
+  canvas.width=w; canvas.height=h;
+  ctx.drawImage(bgImg,ox,oy,w,h,0,0,w,h);
+  chars.forEach((c,i)=>{
+    if(!c.img) return;
+    const cw=w*c.scale, ch=cw*(c.img.naturalHeight/c.img.naturalWidth);
+    const px=c.x*w, py=c.y*h, rad=c.rotation*Math.PI/180;
+    if(c.shadow>0){
+      const fx=px-(ch/2)*Math.sin(rad)+(c.shadowOx||0)*cw, fy=py+(ch/2)*Math.cos(rad)+(c.shadowOy||0)*cw;
+      const sw=cw*0.65, sh=sw*0.18, alpha=c.shadow/100*0.7;
+      ctx.save(); ctx.translate(fx,fy); ctx.scale(1,sh/sw);
+      const sg=ctx.createRadialGradient(0,0,0,0,0,sw/2);
+      sg.addColorStop(0,`rgba(0,0,0,${alpha})`); sg.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(0,0,sw/2,0,Math.PI*2); ctx.fill(); ctx.restore();
+    }
+    const oc=document.createElement('canvas'); oc.width=cw; oc.height=ch;
+    const oc2=oc.getContext('2d');
+    if(c.flipped){oc2.translate(cw,0); oc2.scale(-1,1);}
+    oc2.drawImage(c.img,0,0,cw,ch);
+    oc2.setTransform(1,0,0,1,0,0);
+    if(c.blendAmt>0){
+      oc2.globalCompositeOperation='source-atop';
+      const{r,g,b}=bgColor;
+      oc2.fillStyle=`rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${c.blendAmt*0.6})`;
+      oc2.fillRect(0,0,cw,ch);
+    }
+    if(c.brightAdj!==0){
+      oc2.globalCompositeOperation='source-atop';
+      const v=Math.abs(c.brightAdj)/80;
+      oc2.fillStyle=c.brightAdj>0?`rgba(255,255,255,${v*0.5})`:`rgba(0,0,0,${v*0.5})`;
+      oc2.fillRect(0,0,cw,ch);
+    }
+    ctx.save(); ctx.translate(px,py); ctx.rotate(rad);
+    if(c.blur>0) ctx.filter=`blur(${c.blur}px)`;
+    ctx.drawImage(oc,-cw/2,-ch/2);
+    ctx.filter='none';
+    if(showSel && i===selIdx){
+      ctx.strokeStyle='rgba(0,0,0,0.3)';
+      ctx.setLineDash([Math.round(Math.min(cw,ch)*0.04),Math.round(Math.min(cw,ch)*0.025)]);
+      ctx.lineWidth=Math.max(1,Math.round(Math.min(w,h)*0.003));
+      ctx.strokeRect(-cw/2,-ch/2,cw,ch);
+    }
+    ctx.restore();
+  });
+  if(G.chromatic>0) applyChromatic(w,h,Math.round(G.chromatic));
+  if(G.glow>0) applyGlow(w,h,G.glow);
+  if(G.vignette>0) applyVignette(w,h,G.vignette/100);
+  if(G.leak>0) applyLeak(w,h,G.leak/100);
+  if(G.frame!=='none') drawFrame(w,h,G.frame);
+}
+
+function applyChromatic(w,h,amt){
+  const id=ctx.getImageData(0,0,w,h); const src=new Uint8ClampedArray(id.data); const dst=id.data;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const i=(y*w+x)*4;
+    dst[i]=src[(y*w+Math.min(w-1,x+amt))*4];
+    dst[i+2]=src[(y*w+Math.max(0,x-amt))*4+2];
+  } ctx.putImageData(id,0,0);
+}
+function applyGlow(w,h,amt){
+  const tmp=document.createElement('canvas'); tmp.width=w; tmp.height=h;
+  tmp.getContext('2d').drawImage(canvas,0,0);
+  ctx.save(); ctx.filter=`blur(${Math.round(amt/4)+3}px) brightness(1.5)`;
+  ctx.globalCompositeOperation='screen'; ctx.globalAlpha=amt/180;
+  ctx.drawImage(tmp,0,0); ctx.restore();
+}
+function applyVignette(w,h,str){
+  const g=ctx.createRadialGradient(w/2,h/2,Math.min(w,h)*0.3,w/2,h/2,Math.max(w,h)*0.8);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,`rgba(0,0,0,${str*0.85})`);
+  ctx.save(); ctx.fillStyle=g; ctx.fillRect(0,0,w,h); ctx.restore();
+}
+function applyLeak(w,h,str){
+  ctx.save(); ctx.globalCompositeOperation='screen';
+  ctx.globalAlpha=str*0.5;
+  const g1=ctx.createRadialGradient(0,0,0,0,0,w*0.7);
+  g1.addColorStop(0,'rgba(255,150,30,0.95)'); g1.addColorStop(0.5,'rgba(255,80,20,0.4)'); g1.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g1; ctx.fillRect(0,0,w,h);
+  ctx.globalAlpha=str*0.35;
+  const g2=ctx.createRadialGradient(w,h,0,w,h,w*0.65);
+  g2.addColorStop(0,'rgba(220,80,255,0.9)'); g2.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g2; ctx.fillRect(0,0,w,h); ctx.restore();
+}
+function drawFrame(w,h,type){
+  ctx.save();
+  const now=new Date();
+  const ds=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
+  if(type==='border'){
+    const bd=Math.round(Math.min(w,h)*0.025);
+    ctx.strokeStyle='#fff'; ctx.lineWidth=bd;
+    ctx.strokeRect(bd/2,bd/2,w-bd,h-bd);
+  } else if(type==='date'){
+    const fs=Math.round(Math.min(w,h)*0.042);
+    ctx.fillStyle='rgba(255,145,0,0.92)'; ctx.font=`bold ${fs}px monospace`; ctx.textAlign='right';
+    ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=6; ctx.fillText(ds,w-fs*0.4,h-fs*0.4);
+  }
+  ctx.restore();
+}
+
+function hitChar(mx,my){
+  const w=canvas.width, h=canvas.height;
+  for(let i=chars.length-1;i>=0;i--){
+    const c=chars[i]; if(!c.img) continue;
+    const cw=w*c.scale, ch=cw*(c.img.naturalHeight/c.img.naturalWidth);
+    const px=c.x*w, py=c.y*h, rad=-c.rotation*Math.PI/180;
+    const dx=mx-px, dy=my-py;
+    const lx=dx*Math.cos(rad)-dy*Math.sin(rad), ly=dx*Math.sin(rad)+dy*Math.cos(rad);
+    if(lx>=-cw/2-5&&lx<=cw/2+5&&ly>=-ch/2-5&&ly<=ch/2+5) return i;
+  } return -1;
+}
+
+function shortName(name){
+  const base=name.replace(/\.[^.]+$/,'');
+  return base.length>16 ? base.slice(0,14)+'…' : base;
+}
+function updateCharCount(){
+  document.getElementById('charCount').textContent=chars.length>0?`（現在の配置数：${chars.length}）`:'';
+}
+
+function rebuildCharList(){
+  const list=document.getElementById('charList');
+  const wrap=document.getElementById('charListWrap');
+  list.innerHTML=''; updateCharCount();
+  if(chars.length===0){wrap.style.display='none'; rebuildCharCtrl(); return;}
+  wrap.style.display='block';
+  chars.forEach((c,i)=>{
+    const chip=document.createElement('div');
+    chip.className='char-chip'+(i===selIdx?' active':'');
+    const thumb=document.createElement('img'); thumb.src=c.img.src; thumb.alt=c.name; chip.appendChild(thumb);
+    const name=document.createElement('span'); name.className='chip-name'; name.textContent=shortName(c.name); chip.appendChild(name);
+    const del=document.createElement('span'); del.className='del'; del.textContent='✕';
+    del.addEventListener('click',e=>{e.stopPropagation();chars.splice(i,1);if(selIdx>=chars.length)selIdx=chars.length-1;rebuildCharList();render();});
+    chip.appendChild(del);
+    chip.addEventListener('click',()=>{bringFront(i);rebuildCharList();render();});
+    list.appendChild(chip);
+  });
+  rebuildCharCtrl();
+}
+
+function bringFront(i){ const c=chars.splice(i,1)[0]; chars.push(c); selIdx=chars.length-1; }
+
+function rebuildCharCtrl(){
+  const lbl=document.getElementById('charCtrlLabel');
+  const body=document.getElementById('charCtrlBody');
+  if(selIdx<0||selIdx>=chars.length){
+    lbl.textContent='未選択';
+    body.innerHTML='<div class="no-char-hint">キャラクターを追加または選択してください</div>';
+    return;
+  }
+  const c=chars[selIdx]; lbl.textContent=shortName(c.name);
+  body.innerHTML=`
+    <div class="ctrl-row"><span class="ctrl-label">サイズ</span><input type="range" id="cc_size" min="5" max="200" value="${Math.round(c.scale*100)}"><span class="val" id="cc_sizeV">${Math.round(c.scale*100)}%</span></div>
+    <div class="ctrl-row"><span class="ctrl-label">回転</span><input type="range" id="cc_rot" min="-180" max="180" value="${Math.round(c.rotation)}"><span class="val" id="cc_rotV">${Math.round(c.rotation)}°</span></div>
+    <div class="ctrl-row"><span class="ctrl-label">ぼかし</span><input type="range" id="cc_blur" min="0" max="40" value="${c.blur}"><span class="val" id="cc_blurV">${c.blur}px</span></div>
+    <div class="ctrl-row"><span class="ctrl-label">足元の影</span><input type="range" id="cc_shadow" min="0" max="100" value="${Math.round(c.shadow)}"><span class="val" id="cc_shadowV">${Math.round(c.shadow)}%</span></div>
+    <div class="ctrl-row"><span class="ctrl-label">影 横位置</span><input type="range" id="cc_shadowOx" min="-100" max="100" value="${Math.round((c.shadowOx||0)*100)}"><span class="val" id="cc_shadowOxV">${Math.round((c.shadowOx||0)*100)}</span></div>
+    <div class="ctrl-row"><span class="ctrl-label">影 縦位置</span><input type="range" id="cc_shadowOy" min="-100" max="100" value="${Math.round((c.shadowOy||0)*100)}"><span class="val" id="cc_shadowOyV">${Math.round((c.shadowOy||0)*100)}</span></div>
+    <div class="ctrl-row"><span class="ctrl-label">色なじみ</span><input type="range" id="cc_blend" min="0" max="100" value="${Math.round(c.blendAmt*100)}"><span class="val" id="cc_blendV">${Math.round(c.blendAmt*100)}%</span></div>
+    <div class="ctrl-row"><span class="ctrl-label">明るさ補正</span><input type="range" id="cc_bright" min="-80" max="80" value="${c.brightAdj}"><span class="val" id="cc_brightV">${c.brightAdj>0?'+'+c.brightAdj:c.brightAdj}</span></div>
+    <label class="flip-toggle${c.flipped?' checked':''}" id="cc_flipLabel">
+      <span class="flip-box"><span class="flip-check">✓</span></span>
+      <span class="flip-label">左右反転</span>
+    </label>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn btn-danger" id="cc_del">削除</button>
+    </div>`;
+  document.getElementById('cc_size').addEventListener('input',function(){c.scale=this.value/100;document.getElementById('cc_sizeV').textContent=this.value+'%';render();});
+  document.getElementById('cc_rot').addEventListener('input',function(){c.rotation=+this.value;document.getElementById('cc_rotV').textContent=this.value+'°';render();});
+  document.getElementById('cc_blur').addEventListener('input',function(){c.blur=+this.value;document.getElementById('cc_blurV').textContent=this.value+'px';render();});
+  document.getElementById('cc_shadow').addEventListener('input',function(){c.shadow=+this.value;document.getElementById('cc_shadowV').textContent=this.value+'%';render();});
+  document.getElementById('cc_shadowOx').addEventListener('input',function(){c.shadowOx=this.value/100;document.getElementById('cc_shadowOxV').textContent=this.value;render();});
+  document.getElementById('cc_shadowOy').addEventListener('input',function(){c.shadowOy=this.value/100;document.getElementById('cc_shadowOyV').textContent=this.value;render();});
+  document.getElementById('cc_blend').addEventListener('input',function(){c.blendAmt=this.value/100;document.getElementById('cc_blendV').textContent=this.value+'%';render();});
+  document.getElementById('cc_bright').addEventListener('input',function(){c.brightAdj=+this.value;const v=+this.value;document.getElementById('cc_brightV').textContent=v>0?'+'+v:v;render();});
+  document.getElementById('cc_flipLabel').addEventListener('click',()=>{c.flipped=!c.flipped;document.getElementById('cc_flipLabel').classList.toggle('checked',c.flipped);render();});
+  document.getElementById('cc_del').addEventListener('click',()=>{chars.splice(selIdx,1);if(selIdx>=chars.length)selIdx=chars.length-1;rebuildCharList();render();});
+}
+
+function imgFromFile(f,cb){const img=new Image();img.onload=()=>cb(img,f.name);img.src=URL.createObjectURL(f);}
+function isCharFile(f){return f.type==='image/png';}
+function isBgFile(f){return f.type.startsWith('image/');}
+
+function addBg(img){
+  bgImg=img;
+  document.getElementById('bgBox').classList.add('has-file');
+  document.querySelector('#bgBox .ul-title').textContent='背景写真 ✓';
+  analyzeBg(img); showCanvas(); render();
+}
+function addChar(img,name='character.png'){
+  chars.push({img,name,x:0.5,y:0.75,scale:0.4,rotation:0,flipped:false,blendAmt:0.4,brightAdj:0,shadow:0,blur:0,shadowOx:0,shadowOy:-0.2});
+  selIdx=chars.length-1;
+  document.getElementById('charBox').classList.add('has-file');
+  showCanvas(); rebuildCharList(); render();
+}
+function showCanvas(){
+  if(bgImg){document.getElementById('placeholder').style.display='none';canvas.style.display='block';}
+}
+
+document.getElementById('bgInput').addEventListener('change',function(){if(!this.files[0])return;imgFromFile(this.files[0],addBg);this.value='';});
+document.getElementById('charInput').addEventListener('change',function(){Array.from(this.files).forEach(f=>imgFromFile(f,addChar));this.value='';});
+
+function setupBoxDrop(boxId,isChar){
+  const box=document.getElementById(boxId);
+  box.addEventListener('dragover',e=>{e.preventDefault();box.classList.add('dragover');});
+  box.addEventListener('dragleave',()=>box.classList.remove('dragover'));
+  box.addEventListener('drop',e=>{
+    e.preventDefault();box.classList.remove('dragover');
+    Array.from(e.dataTransfer.files).forEach(f=>{
+      if(isChar&&isCharFile(f)) imgFromFile(f,addChar);
+      else if(!isChar&&isBgFile(f)) imgFromFile(f,img=>addBg(img));
+    });
+  });
+}
+setupBoxDrop('bgBox',false); setupBoxDrop('charBox',true);
+
+canvasWrap.addEventListener('dragover',e=>{e.preventDefault();canvasWrap.classList.add('dragover');});
+canvasWrap.addEventListener('dragleave',e=>{if(!canvasWrap.contains(e.relatedTarget))canvasWrap.classList.remove('dragover');});
+canvasWrap.addEventListener('drop',e=>{
+  e.preventDefault();canvasWrap.classList.remove('dragover');
+  Array.from(e.dataTransfer.files).forEach(f=>{
+    if(isCharFile(f)) imgFromFile(f,addChar);
+    else if(isBgFile(f)) imgFromFile(f,img=>addBg(img));
+  });
+});
+
+[['chromaticSlider','chromaticVal','chromatic'],['glowSlider','glowVal','glow'],
+ ['vignetteSlider','vignetteVal','vignette'],['leakSlider','leakVal','leak']].forEach(([id,vid,key])=>{
+  document.getElementById(id).addEventListener('input',function(){G[key]=+this.value;document.getElementById(vid).textContent=this.value;render();});
+});
+function bindToggle(gid,key){
+  document.getElementById(gid).addEventListener('click',e=>{
+    const b=e.target.closest('.tgl'); if(!b)return;
+    document.querySelectorAll('#'+gid+' .tgl').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); G[key]=b.dataset.v; render();
+  });
+}
+bindToggle('ratioGroup','ratio'); bindToggle('frameGroup','frame');
+
+function dlFileName(){
+  const now=new Date();
+  const date=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  dlCount++;
+  return `odekake_img_${date}_${String(dlCount).padStart(3,'0')}.png`;
+}
+document.getElementById('dlBtn').addEventListener('click',()=>{
+  if(!bgImg)return;
+  const old=selIdx; selIdx=-1; const oldSel=showSel; showSel=false; render();
+  const a=document.createElement('a'); a.download=dlFileName(); a.href=canvas.toDataURL('image/png'); a.click();
+  selIdx=old; showSel=oldSel; render();
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  if(!bgImg&&chars.length===0)return;
+  if(!confirm('すべてリセットしますか？'))return;
+  bgImg=null; chars=[]; selIdx=-1; dlCount=0; showSel=false;
+  G={ratio:'original',frame:'none',chromatic:0,glow:0,vignette:0,leak:0};
+  ['chromaticSlider','glowSlider','vignetteSlider','leakSlider'].forEach(id=>document.getElementById(id).value=0);
+  ['chromaticVal','glowVal','vignetteVal','leakVal'].forEach(id=>document.getElementById(id).textContent='0');
+  document.querySelectorAll('#ratioGroup .tgl,#frameGroup .tgl').forEach(b=>b.classList.toggle('active',b.dataset.v==='original'||b.dataset.v==='none'));
+  ['bgBox','charBox'].forEach(id=>document.getElementById(id).classList.remove('has-file'));
+  document.querySelector('#bgBox .ul-title').textContent='背景写真';
+  document.querySelector('#charBox .ul-title').textContent='キャラクター';
+  document.getElementById('colorInfo').textContent='';
+  document.getElementById('placeholder').style.display='block';
+  canvas.style.display='none';
+  rebuildCharList();
+});
+
+function getPos(e){
+  const r=canvas.getBoundingClientRect(); const sx=canvas.width/r.width, sy=canvas.height/r.height;
+  const t=e.touches?e.touches[0]:e;
+  return{x:(t.clientX-r.left)*sx,y:(t.clientY-r.top)*sy};
+}
+canvas.addEventListener('mousedown',e=>{
+  if(!bgImg)return; const{x,y}=getPos(e); const hi=hitChar(x,y);
+  if(hi>=0){dragging=true;showSel=true;bringFront(hi);const c=chars[selIdx];dragOx=x-c.x*canvas.width;dragOy=y-c.y*canvas.height;canvas.style.cursor='grabbing';rebuildCharList();render();}
+});
+canvas.addEventListener('mousemove',e=>{
+  if(!dragging)return; const{x,y}=getPos(e); const c=chars[selIdx];
+  c.x=Math.max(-0.25,Math.min(1.25,(x-dragOx)/canvas.width));
+  c.y=Math.max(-0.15,Math.min(1.2,(y-dragOy)/canvas.height));
+  render();
+});
+canvas.addEventListener('mouseup',()=>{dragging=false;canvas.style.cursor='crosshair';});
+canvas.addEventListener('mouseleave',()=>{dragging=false;});
+canvas.addEventListener('touchstart',e=>{
+  e.preventDefault();if(!bgImg)return;const{x,y}=getPos(e);const hi=hitChar(x,y);
+  if(hi>=0){dragging=true;showSel=true;bringFront(hi);const c=chars[selIdx];dragOx=x-c.x*canvas.width;dragOy=y-c.y*canvas.height;rebuildCharList();render();}
+},{passive:false});
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();if(!dragging)return;const{x,y}=getPos(e);const c=chars[selIdx];
+  c.x=Math.max(-0.25,Math.min(1.25,(x-dragOx)/canvas.width));
+  c.y=Math.max(-0.15,Math.min(1.2,(y-dragOy)/canvas.height));
+  render();
+},{passive:false});
+canvas.addEventListener('touchend',()=>{dragging=false;});
+</script>
+</body>
+</html>
