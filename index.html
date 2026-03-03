@@ -256,7 +256,6 @@ footer .credit a:hover { color: #444; }
 </div>
 
 <script>
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const canvasWrap = document.getElementById('canvasWrap');
@@ -399,26 +398,7 @@ function render(){
       oc2.fillRect(0,0,cw,ch);
     }
     ctx.save(); ctx.translate(px,py); ctx.rotate(rad);
-    if(!isMobile && c.rim>0){
-      const rimSize=Math.max(2,Math.round(c.rim/6)), pad=Math.ceil(rimSize*4);
-      const sil=document.createElement('canvas'); sil.width=cw; sil.height=ch;
-      const silCtx=sil.getContext('2d');
-      silCtx.drawImage(oc,0,0);
-      silCtx.globalCompositeOperation='source-in';
-      silCtx.fillStyle=c.rimColor||'#fff';
-      silCtx.fillRect(0,0,cw,ch);
-      const glowC=document.createElement('canvas'); glowC.width=cw+pad*2; glowC.height=ch+pad*2;
-      const glowCtx=glowC.getContext('2d');
-      glowCtx.filter=`blur(${rimSize}px)`;
-      glowCtx.drawImage(sil,pad,pad);
-      glowCtx.filter='none';
-      glowCtx.globalCompositeOperation='destination-out';
-      glowCtx.drawImage(oc,pad,pad);
-      ctx.globalAlpha=c.rim/100*1.8>1?1:c.rim/100*1.8;
-      ctx.drawImage(glowC,-cw/2-pad,-ch/2-pad);
-      ctx.globalAlpha=1;
-    }
-    if(!isMobile && c.blur>0){
+    if(c.blur>0){
       const bc=document.createElement('canvas'), pad=Math.ceil(c.blur*3);
       bc.width=cw+pad*2; bc.height=ch+pad*2;
       const bc2=bc.getContext('2d');
@@ -559,6 +539,7 @@ function rebuildCharCtrl(){
   body.innerHTML=`
     <div class="ctrl-row"><span class="ctrl-label">サイズ</span><input type="range" id="cc_size" min="5" max="200" value="${Math.round(c.scale*100)}"><span class="val" id="cc_sizeV">${Math.round(c.scale*100)}%</span></div>
     <div class="ctrl-row"><span class="ctrl-label">回転</span><input type="range" id="cc_rot" min="-180" max="180" value="${Math.round(c.rotation)}"><span class="val" id="cc_rotV">${Math.round(c.rotation)}°</span></div>
+    <div class="ctrl-row"><span class="ctrl-label">ぼかし</span><input type="range" id="cc_blur" min="0" max="40" value="${c.blur}"><span class="val" id="cc_blurV">${c.blur}px</span></div>
     <hr class="divider">
     <div class="ctrl-row"><span class="ctrl-label">足元の影</span><input type="range" id="cc_shadow" min="0" max="100" value="${Math.round(c.shadow)}"><span class="val" id="cc_shadowV">${Math.round(c.shadow)}%</span></div>
     <div class="ctrl-row"><span class="ctrl-label">影 横位置</span><input type="range" id="cc_shadowOx" min="-100" max="100" value="${Math.round((c.shadowOx||0)*100)}"><span class="val" id="cc_shadowOxV">${Math.round((c.shadowOx||0)*100)}</span></div>
@@ -566,18 +547,6 @@ function rebuildCharCtrl(){
     <hr class="divider">
     <div class="ctrl-row"><span class="ctrl-label">色なじみ</span><input type="range" id="cc_blend" min="0" max="100" value="${Math.round(c.blendAmt*100)}"><span class="val" id="cc_blendV">${Math.round(c.blendAmt*100)}%</span></div>
     <div class="ctrl-row"><span class="ctrl-label">明るさ補正</span><input type="range" id="cc_bright" min="-80" max="80" value="${c.brightAdj}"><span class="val" id="cc_brightV">${c.brightAdj>0?'+'+c.brightAdj:c.brightAdj}</span></div>
-    <hr class="divider">
-    ${isMobile ? '' : `<div class="ctrl-row"><span class="ctrl-label">ぼかし</span><input type="range" id="cc_blur" min="0" max="40" value="${c.blur}"><span class="val" id="cc_blurV">${c.blur}px</span></div>`}
-    ${isMobile ? '<div style="font-size:0.68rem;color:#bbb;letter-spacing:0.03em">ぼかし・リムライトはPC版のみ対応しています</div>' : ''}
-    ${isMobile ? '' : `<hr class="divider">
-    <div class="ctrl-row"><span class="ctrl-label">リムライト</span><input type="range" id="cc_rim" min="0" max="100" value="${Math.round(c.rim||0)}"><span class="val" id="cc_rimV">${Math.round(c.rim||0)}%</span></div>
-    <div class="tgl-group" id="cc_rimColorGroup" style="margin-top:2px">
-      <button class="tgl${(!c.rimColor||c.rimColor==='#fff')?' active':''}" data-col="#fff">ホワイト</button>
-      <button class="tgl${c.rimColor==='#ffcc88'?' active':''}" data-col="#ffcc88">ホット</button>
-      <button class="tgl${c.rimColor==='#88ccff'?' active':''}" data-col="#88ccff">クール</button>
-      <button class="tgl${c.rimColor==='#cc88ff'?' active':''}" data-col="#cc88ff">パープル</button>
-      <button class="tgl${c.rimColor==='#88ffcc'?' active':''}" data-col="#88ffcc">グリーン</button>
-    </div>`}
     <hr class="divider">
     <label class="flip-toggle${c.flipped?' checked':''}" id="cc_flipLabel">
       <span class="flip-box"><span class="flip-check">✓</span></span>
@@ -594,13 +563,6 @@ function rebuildCharCtrl(){
   document.getElementById('cc_shadowOy').addEventListener('input',function(){c.shadowOy=this.value/100;document.getElementById('cc_shadowOyV').textContent=this.value;render();});
   document.getElementById('cc_blend').addEventListener('input',function(){c.blendAmt=this.value/100;document.getElementById('cc_blendV').textContent=this.value+'%';render();});
   document.getElementById('cc_bright').addEventListener('input',function(){c.brightAdj=+this.value;const v=+this.value;document.getElementById('cc_brightV').textContent=v>0?'+'+v:v;render();});
-  document.getElementById('cc_rim').addEventListener('input',function(){c.rim=+this.value;document.getElementById('cc_rimV').textContent=this.value+'%';render();});
-  document.getElementById('cc_rimColorGroup').addEventListener('click',e=>{
-    const b=e.target.closest('.tgl'); if(!b)return;
-    c.rimColor=b.dataset.col;
-    document.querySelectorAll('#cc_rimColorGroup .tgl').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active'); render();
-  });
   document.getElementById('cc_flipLabel').addEventListener('click',()=>{c.flipped=!c.flipped;document.getElementById('cc_flipLabel').classList.toggle('checked',c.flipped);render();});
   document.getElementById('cc_del').addEventListener('click',()=>{chars.splice(selIdx,1);if(selIdx>=chars.length)selIdx=chars.length-1;rebuildCharList();render();});
 }
@@ -616,7 +578,7 @@ function addBg(img){
   analyzeBg(img); showCanvas(); render();
 }
 function addChar(img,name='character.png'){
-  chars.push({img,name,x:0.5,y:0.75,scale:0.4,rotation:0,flipped:false,blendAmt:0.4,brightAdj:0,shadow:0,blur:0,shadowOx:0,shadowOy:-0.2,rim:0,rimColor:'#fff'});
+  chars.push({img,name,x:0.5,y:0.75,scale:0.4,rotation:0,flipped:false,blendAmt:0.4,brightAdj:0,shadow:0,blur:0,shadowOx:0,shadowOy:-0.2});
   selIdx=chars.length-1;
   document.getElementById('charBox').classList.add('has-file');
   showCanvas(); rebuildCharList(); render();
