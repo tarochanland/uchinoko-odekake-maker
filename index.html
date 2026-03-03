@@ -137,7 +137,7 @@ footer .credit a:hover { color: #444; }
         <label class="upload-box" id="bgBox">
           <input type="file" id="bgInput" accept="image/*">
           <div class="ul-title">背景写真</div>
-          <div class="ul-sub">クリックまたはドロップ<br>JPG / PNG / WebP など</div>
+          <div class="ul-sub">クリックまたはドロップ<br>JPG / PNG / WEBP など</div>
         </label>
         <label class="upload-box" id="charBox">
           <input type="file" id="charInput" accept="image/png" multiple>
@@ -149,7 +149,7 @@ footer .credit a:hover { color: #444; }
     </div>
 
     <div class="canvas-wrap" id="canvasWrap">
-      <div class="placeholder" id="placeholder">背景写真とキャラクターを<br>アップロードしてください<br><br>ドラッグ＆ドロップにも対応</div>
+      <div class="placeholder" id="placeholder">背景写真とキャラクターを<br>アップロード<br></div>
       <canvas id="canvas" style="display:none"></canvas>
     </div>
 
@@ -160,8 +160,8 @@ footer .credit a:hover { color: #444; }
     <div class="controls">
       <!-- タブバー -->
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="global">全体設定</button>
-        <button class="tab-btn" data-tab="char">キャラクター設定</button>
+        <button class="tab-btn active" data-tab="global">全般</button>
+        <button class="tab-btn" data-tab="char">キャラクター</button>
       </div>
 
       <!-- 全体設定タブ -->
@@ -192,7 +192,7 @@ footer .credit a:hover { color: #444; }
           <div class="sec-title">エフェクト</div>
           <div class="ctrl-row"><span class="ctrl-label">彩度</span><input type="range" id="saturationSlider" min="0" max="200" value="100"><span class="val" id="saturationVal">100</span></div>
           <div class="ctrl-row"><span class="ctrl-label">色収差</span><input type="range" id="chromaticSlider" min="0" max="20" value="0"><span class="val" id="chromaticVal">0</span></div>
-          <div class="ctrl-row"><span class="ctrl-label">拡散光（グロー）</span><input type="range" id="glowSlider" min="0" max="100" value="0"><span class="val" id="glowVal">0</span></div>
+          <div class="ctrl-row"><span class="ctrl-label">拡散光</span><input type="range" id="glowSlider" min="0" max="100" value="0"><span class="val" id="glowVal">0</span></div>
           <div class="ctrl-row"><span class="ctrl-label">ビネット</span><input type="range" id="vignetteSlider" min="0" max="100" value="0"><span class="val" id="vignetteVal">0</span></div>
           <div class="ctrl-row"><span class="ctrl-label">光漏れ</span><input type="range" id="leakSlider" min="0" max="100" value="0"><span class="val" id="leakVal">0</span></div>
         </div>
