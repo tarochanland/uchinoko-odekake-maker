@@ -567,8 +567,8 @@ function rebuildCharCtrl(){
     <div class="ctrl-row"><span class="ctrl-label">色なじみ</span><input type="range" id="cc_blend" min="0" max="100" value="${Math.round(c.blendAmt*100)}"><span class="val" id="cc_blendV">${Math.round(c.blendAmt*100)}%</span></div>
     <div class="ctrl-row"><span class="ctrl-label">明るさ補正</span><input type="range" id="cc_bright" min="-80" max="80" value="${c.brightAdj}"><span class="val" id="cc_brightV">${c.brightAdj>0?'+'+c.brightAdj:c.brightAdj}</span></div>
     <hr class="divider">
-    <div class="ctrl-row"><span class="ctrl-label">ぼかし</span><input type="range" id="cc_blur" min="0" max="40" value="${c.blur}"><span class="val" id="cc_blurV">${c.blur}px</span></div>
-    ${isMobile ? '<div style="font-size:0.68rem;color:#bbb;letter-spacing:0.03em;margin-top:-6px">ぼかし・リムライトはPC版のみ対応しています</div>' : ''}
+    ${isMobile ? '' : `<div class="ctrl-row"><span class="ctrl-label">ぼかし</span><input type="range" id="cc_blur" min="0" max="40" value="${c.blur}"><span class="val" id="cc_blurV">${c.blur}px</span></div>`}
+    ${isMobile ? '<div style="font-size:0.68rem;color:#bbb;letter-spacing:0.03em">ぼかし・リムライトはPC版のみ対応しています</div>' : ''}
     ${isMobile ? '' : `<hr class="divider">
     <div class="ctrl-row"><span class="ctrl-label">リムライト</span><input type="range" id="cc_rim" min="0" max="100" value="${Math.round(c.rim||0)}"><span class="val" id="cc_rimV">${Math.round(c.rim||0)}%</span></div>
     <div class="tgl-group" id="cc_rimColorGroup" style="margin-top:2px">
