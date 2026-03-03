@@ -256,6 +256,7 @@ footer .credit a:hover { color: #444; }
 </div>
 
 <script>
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const canvasWrap = document.getElementById('canvasWrap');
@@ -398,7 +399,7 @@ function render(){
       oc2.fillRect(0,0,cw,ch);
     }
     ctx.save(); ctx.translate(px,py); ctx.rotate(rad);
-    if(c.rim>0){
+    if(!isMobile && c.rim>0){
       const rimSize=Math.max(2,Math.round(c.rim/6)), pad=Math.ceil(rimSize*4);
       const sil=document.createElement('canvas'); sil.width=cw; sil.height=ch;
       const silCtx=sil.getContext('2d');
@@ -417,7 +418,7 @@ function render(){
       ctx.drawImage(glowC,-cw/2-pad,-ch/2-pad);
       ctx.globalAlpha=1;
     }
-    if(c.blur>0){
+    if(!isMobile && c.blur>0){
       const bc=document.createElement('canvas'), pad=Math.ceil(c.blur*3);
       bc.width=cw+pad*2; bc.height=ch+pad*2;
       const bc2=bc.getContext('2d');
@@ -558,7 +559,6 @@ function rebuildCharCtrl(){
   body.innerHTML=`
     <div class="ctrl-row"><span class="ctrl-label">サイズ</span><input type="range" id="cc_size" min="5" max="200" value="${Math.round(c.scale*100)}"><span class="val" id="cc_sizeV">${Math.round(c.scale*100)}%</span></div>
     <div class="ctrl-row"><span class="ctrl-label">回転</span><input type="range" id="cc_rot" min="-180" max="180" value="${Math.round(c.rotation)}"><span class="val" id="cc_rotV">${Math.round(c.rotation)}°</span></div>
-    <div class="ctrl-row"><span class="ctrl-label">ぼかし</span><input type="range" id="cc_blur" min="0" max="40" value="${c.blur}"><span class="val" id="cc_blurV">${c.blur}px</span></div>
     <hr class="divider">
     <div class="ctrl-row"><span class="ctrl-label">足元の影</span><input type="range" id="cc_shadow" min="0" max="100" value="${Math.round(c.shadow)}"><span class="val" id="cc_shadowV">${Math.round(c.shadow)}%</span></div>
     <div class="ctrl-row"><span class="ctrl-label">影 横位置</span><input type="range" id="cc_shadowOx" min="-100" max="100" value="${Math.round((c.shadowOx||0)*100)}"><span class="val" id="cc_shadowOxV">${Math.round((c.shadowOx||0)*100)}</span></div>
@@ -567,6 +567,9 @@ function rebuildCharCtrl(){
     <div class="ctrl-row"><span class="ctrl-label">色なじみ</span><input type="range" id="cc_blend" min="0" max="100" value="${Math.round(c.blendAmt*100)}"><span class="val" id="cc_blendV">${Math.round(c.blendAmt*100)}%</span></div>
     <div class="ctrl-row"><span class="ctrl-label">明るさ補正</span><input type="range" id="cc_bright" min="-80" max="80" value="${c.brightAdj}"><span class="val" id="cc_brightV">${c.brightAdj>0?'+'+c.brightAdj:c.brightAdj}</span></div>
     <hr class="divider">
+    <div class="ctrl-row"><span class="ctrl-label">ぼかし</span><input type="range" id="cc_blur" min="0" max="40" value="${c.blur}"><span class="val" id="cc_blurV">${c.blur}px</span></div>
+    ${isMobile ? '<div style="font-size:0.68rem;color:#bbb;letter-spacing:0.03em;margin-top:-6px">ぼかし・リムライトはPC版のみ対応しています</div>' : ''}
+    ${isMobile ? '' : `<hr class="divider">
     <div class="ctrl-row"><span class="ctrl-label">リムライト</span><input type="range" id="cc_rim" min="0" max="100" value="${Math.round(c.rim||0)}"><span class="val" id="cc_rimV">${Math.round(c.rim||0)}%</span></div>
     <div class="tgl-group" id="cc_rimColorGroup" style="margin-top:2px">
       <button class="tgl${(!c.rimColor||c.rimColor==='#fff')?' active':''}" data-col="#fff">ホワイト</button>
@@ -574,7 +577,7 @@ function rebuildCharCtrl(){
       <button class="tgl${c.rimColor==='#88ccff'?' active':''}" data-col="#88ccff">クール</button>
       <button class="tgl${c.rimColor==='#cc88ff'?' active':''}" data-col="#cc88ff">パープル</button>
       <button class="tgl${c.rimColor==='#88ffcc'?' active':''}" data-col="#88ffcc">グリーン</button>
-    </div>
+    </div>`}
     <hr class="divider">
     <label class="flip-toggle${c.flipped?' checked':''}" id="cc_flipLabel">
       <span class="flip-box"><span class="flip-check">✓</span></span>
